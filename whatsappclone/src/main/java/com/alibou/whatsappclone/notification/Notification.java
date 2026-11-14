@@ -22,4 +22,6 @@ public class Notification {
     private MessageType messageType;
     private NotificationType type;
     private byte[] media;
+    private boolean isPriority;
+    private Integer reminderIteration;
 }

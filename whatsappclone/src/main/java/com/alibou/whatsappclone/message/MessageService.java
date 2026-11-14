@@ -7,6 +7,8 @@ import com.alibou.whatsappclone.file.FileUtils;
 import com.alibou.whatsappclone.notification.Notification;
 import com.alibou.whatsappclone.notification.NotificationService;
 import com.alibou.whatsappclone.notification.NotificationType;
+import com.alibou.whatsappclone.reminder.MessageReminder;
+import com.alibou.whatsappclone.reminder.MessageReminderRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -25,6 +28,7 @@ public class MessageService {
     private final MessageMapper mapper;
     private final NotificationService notificationService;
     private final FileService fileService;
+    private final MessageReminderRepository reminderRepository;
 
     public void saveMessage(MessageRequest messageRequest) {
         Chat chat = chatRepository.findById(messageRequest.getChatId())
@@ -37,8 +41,31 @@ public class MessageService {
         message.setReceiverId(messageRequest.getReceiverId());
         message.setType(messageRequest.getType());
         message.setState(MessageState.SENT);
+        message.setPriority(messageRequest.isPriority());
+        message.setReminderIntervalMinutes(messageRequest.getReminderIntervalMinutes());
+        message.setReminderMaxRepeats(messageRequest.getReminderMaxRepeats());
 
         messageRepository.save(message);
+
+        if (message.isPriority() && message.getReminderMaxRepeats() != null && message.getReminderMaxRepeats() > 0) {
+            int interval = (message.getReminderIntervalMinutes() != null && message.getReminderIntervalMinutes() > 0)
+                    ? message.getReminderIntervalMinutes()
+                    : 30;
+
+            MessageReminder reminder = MessageReminder.builder()
+                    .messageId(message.getId())
+                    .senderId(message.getSenderId())
+                    .receiverId(message.getReceiverId())
+                    .chatId(chat.getId())
+                    .intervalMinutes(interval)
+                    .remainingRepeats(message.getReminderMaxRepeats())
+                    .totalIterationsSent(0)
+                    .nextRunAt(LocalDateTime.now().plusMinutes(interval))
+                    .active(true)
+                    .build();
+
+            reminderRepository.save(reminder);
+        }
 
         Notification notification = Notification.builder()
                 .chatId(chat.getId())
@@ -48,6 +75,7 @@ public class MessageService {
                 .receiverId(messageRequest.getReceiverId())
                 .type(NotificationType.MESSAGE)
                 .chatName(chat.getTargetChatName(message.getSenderId()))
+                .isPriority(message.isPriority())
                 .build();
 
         notificationService.sendNotification(messageRequest.getReceiverId(), notification);
@@ -67,6 +95,7 @@ public class MessageService {
         final String recipientId = getRecipientId(chat, authentication);
 
         messageRepository.setMessagesToSeenByChatId(chatId, MessageState.SEEN);
+        reminderRepository.deactivateAllForChatAndReceiver(chatId, authentication.getName());
 
         Notification notification = Notification.builder()
                 .chatId(chat.getId())

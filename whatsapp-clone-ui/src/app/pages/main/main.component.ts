@@ -33,6 +33,10 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewChecked {
   socketClient: any = null;
   messageContent: string = '';
   showEmojis = false;
+  isPriorityMessage: boolean = false;
+  reminderIntervalMinutes: number = 30;
+  reminderMaxRepeats: number = 5;
+  showPriorityOptions: boolean = false;
   @ViewChild('scrollableDiv') scrollableDiv!: ElementRef<HTMLDivElement>;
   private notificationSubscription: any;
 
@@ -79,6 +83,9 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewChecked {
         receiverId: this.getReceiverId(),
         content: this.messageContent,
         type: 'TEXT',
+        isPriority: this.isPriorityMessage,
+        reminderIntervalMinutes: this.isPriorityMessage ? this.reminderIntervalMinutes : undefined,
+        reminderMaxRepeats: this.isPriorityMessage ? this.reminderMaxRepeats : undefined,
       };
       this.messageService.saveMessage({
         body: messageRequest
@@ -90,12 +97,17 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewChecked {
             content: this.messageContent,
             type: 'TEXT',
             state: 'SENT',
+            isPriority: this.isPriorityMessage,
+            reminderIntervalMinutes: this.isPriorityMessage ? this.reminderIntervalMinutes : undefined,
+            reminderMaxRepeats: this.isPriorityMessage ? this.reminderMaxRepeats : undefined,
             createdAt: new Date().toString()
           };
           this.selectedChat.lastMessage = this.messageContent;
           this.chatMessages.push(message);
           this.messageContent = '';
           this.showEmojis = false;
+          this.isPriorityMessage = false;
+          this.showPriorityOptions = false;
         }
       });
     }
@@ -230,18 +242,22 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewChecked {
         case 'SEEN':
           this.chatMessages.forEach(m => m.state = 'SEEN');
           break;
+        case 'PRIORITY_REMINDER':
+          this.setMessagesToSeen();
+          break;
       }
     } else {
       const destChat = this.chats.find(c => c.id === notification.chatId);
       if (destChat && notification.type !== 'SEEN') {
-        if (notification.type === 'MESSAGE') {
+        if (notification.type === 'MESSAGE' || notification.type === 'PRIORITY_REMINDER') {
           destChat.lastMessage = notification.content;
         } else if (notification.type === 'IMAGE') {
           destChat.lastMessage = 'Attachment';
         }
         destChat.lastMessageTime = new Date().toString();
         destChat.unreadCount! += 1;
-      } else if (notification.type === 'MESSAGE') {
+        this.chats = [destChat, ...this.chats.filter(c => c.id !== destChat.id)];
+      } else if (notification.type === 'MESSAGE' || notification.type === 'PRIORITY_REMINDER') {
         const newChat: ChatResponse = {
           id: notification.chatId,
           senderId: notification.senderId,

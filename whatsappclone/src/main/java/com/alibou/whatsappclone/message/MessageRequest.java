@@ -18,4 +18,7 @@ public class MessageRequest {
     private String receiverId;
     private MessageType type;
     private String chatId;
+    private boolean isPriority;
+    private Integer reminderIntervalMinutes;
+    private Integer reminderMaxRepeats;
 }

@@ -8,4 +8,7 @@ export interface MessageRequest {
   receiverId?: string;
   senderId?: string;
   type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO';
+  isPriority?: boolean;
+  reminderIntervalMinutes?: number;
+  reminderMaxRepeats?: number;
 }

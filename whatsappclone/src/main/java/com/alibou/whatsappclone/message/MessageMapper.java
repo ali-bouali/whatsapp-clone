@@ -15,6 +15,9 @@ public class MessageMapper {
                 .state(message.getState())
                 .createdAt(message.getCreatedDate())
                 .media(FileUtils.readFileFromLocation(message.getMediaFilePath()))
+                .isPriority(message.isPriority())
+                .reminderIntervalMinutes(message.getReminderIntervalMinutes())
+                .reminderMaxRepeats(message.getReminderMaxRepeats())
                 .build();
     }
 }

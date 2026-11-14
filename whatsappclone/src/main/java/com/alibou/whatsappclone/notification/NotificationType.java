@@ -7,5 +7,5 @@ public enum NotificationType {
     IMAGE,
     AUDIO,
     VIDEO,
-
+    PRIORITY_REMINDER
 }

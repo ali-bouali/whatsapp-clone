@@ -11,4 +11,7 @@ export interface MessageResponse {
   senderId?: string;
   state?: 'SENT' | 'SEEN';
   type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO';
+  isPriority?: boolean;
+  reminderIntervalMinutes?: number;
+  reminderMaxRepeats?: number;
 }

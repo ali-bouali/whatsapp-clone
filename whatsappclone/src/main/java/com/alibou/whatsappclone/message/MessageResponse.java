@@ -23,4 +23,7 @@ public class MessageResponse {
     private String receiverId;
     private LocalDateTime createdAt;
     private byte[] media;
+    private boolean isPriority;
+    private Integer reminderIntervalMinutes;
+    private Integer reminderMaxRepeats;
 }
